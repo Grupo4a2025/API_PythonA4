@@ -1,0 +1,55 @@
+services:
+  # -------------------------------
+  # BASE DE DATOS (mariadba4)
+  # -------------------------------
+  mariadb:
+    image: mariadb
+    container_name: mariadba4
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - mariadb-dataa4:/var/lib/mysql
+      - ./Pescados.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  # -------------------------------
+  # PHPMYADMIN (phpmyadmina4)
+  # -------------------------------
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmina4
+    restart: unless-stopped
+    environment:
+      - PMA_HOST=mariadba4
+    ports:
+      - "7004:80"
+    depends_on:
+      - mariadb
+
+  # -------------------------------
+  # PYTHON API (pythona4)
+  # -------------------------------
+  python:
+    build: ./api
+    container_name: pythona4
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - mariadb
+
+  # -------------------------------
+  # APACHE (apachea4)
+  # -------------------------------
+  apache-waf:
+    build: ./apache
+    container_name: apachea4
+    restart: unless-stopped
+    ports:
+      - "6004:80"
+    depends_on:
+      - python
+
+volumes:
+  # Solo queda el de la base de datos
+  mariadb-dataa4:

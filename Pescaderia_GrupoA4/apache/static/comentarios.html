@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>PESCADERÍA - Opiniones</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+    <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+    <style>
+        /* Estilo específico para la tabla de comentarios */
+        .table-container {
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            background: white;
+            padding: 1rem;
+        }
+        .user-cell {
+            font-weight: 600;
+            color: var(--primary-blue);
+            width: 25%;
+        }
+    </style>
+
+    <script>
+        var myHeaders = new Headers();
+        myHeaders.append("Content-Type", "application/json");
+        
+        // Cargar comentarios al iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            pedirComentarios();
+        });
+
+        function guardarComentario() {
+            let usuario = document.getElementById("usuario").value;
+            let descripcion = document.getElementById("descripcion").value;
+
+            if(usuario.trim() === "" || descripcion.trim() === ""){
+                alert("Por favor, rellena ambos campos.");
+                return;
+            }
+
+            var raw = JSON.stringify({
+                "usuario": usuario,
+                "descripcion": descripcion
+            });
+
+            var requestOptions = {
+                method: 'POST',
+                headers: myHeaders,
+                body: raw
+            };
+
+            fetch("/api/comentarios/", requestOptions)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status == "OK"){
+                        alert("✅ Comentario publicado con éxito");
+                        // Limpiar campos
+                        document.getElementById("usuario").value = "";
+                        document.getElementById("descripcion").value = "";
+                        pedirComentarios();
+                    } else {
+                        alert("❌ No se pudo guardar el comentario");
+                    }
+                })
+                .catch(error => console.log('error', error));
+        }
+
+        function pintarComentarios(lista){
+            let tbody = document.getElementsByTagName("tbody")[0];
+            tbody.innerHTML = "";
+
+            if(lista.length === 0){
+                tbody.innerHTML = `<tr><td colspan="2" class="has-text-centered has-text-grey p-5">No hay comentarios aún. ¡Sé el primero!</td></tr>`;
+                return;
+            }
+
+            lista.forEach(comentario => {
+                let texto = `<tr>
+                        <td class="user-cell">
+                            <span class="icon is-small mr-1"><i class="fas fa-user-circle"></i></span>
+                            ${comentario.usuario}
+                        </td>
+                        <td>
+                            <span class="has-text-grey-dark">${comentario.descripcion}</span>
+                        </td>
+                        </tr>`;
+                tbody.innerHTML += texto;                            
+            });
+        }
+
+        function pedirComentarios(){
+            var requestOptions = {
+                method: 'GET',
+                headers: myHeaders,
+            };
+
+            fetch("/api/comentarios/", requestOptions)
+                .then(response => response.json())
+                .then(result => {
+                    if (result){
+                        pintarComentarios(result);
+                    }
+                })
+                .catch(error => {
+                    console.log('error', error);
+                    // alert("Error al recuperar comentarios.") 
+                });
+        }
+    </script>
+</head>
+<body>
+
+    <nav class="navbar is-info" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="pescados.html">
+                <span class="icon is-medium mr-2"><i class="fas fa-fish"></i></span>
+                <strong>MIPRIMERAPESCADERIA</strong>
+            </a>
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="miMenu">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div id="miMenu" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="pescados.html">Listado de Pescados</a>
+                <a class="navbar-item is-active" href="comentarios.html">Reseñas y Opiniones</a>
+                <a class="navbar-item" href="ficheros.html">Gestión de Ficheros</a>
+            </div>
+            
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <div class="buttons">
+                        <a class="button is-light" href="index.html">Salir</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="section">
+        <div class="container">
+            <h1 class="title is-3 has-text-centered mb-6">Lo que dicen nuestros clientes</h1>
+
+            <div class="columns is-variable is-8">
+                
+                <div class="column is-one-third">
+                    <div class="box has-background-light" style="position: sticky; top: 20px;">
+                        <h2 class="title is-4 has-text-info">
+                            <span class="icon"><i class="fas fa-pen-nib"></i></span>
+                            Deja tu reseña
+                        </h2>
+                        
+                        <div class="field">
+                            <label class="label" for="usuario">Tu Nombre</label>
+                            <div class="control has-icons-left">
+                                <input required type="text" class="input" placeholder="Ej: Juan Pérez" name="usuario" id="usuario">
+                                <span class="icon is-small is-left"><i class="fas fa-user"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label" for="descripcion">Tu Opinión</label>
+                            <div class="control">
+                                <textarea required class="textarea" placeholder="¿Qué te ha parecido el pescado? ¿Y el servicio?" name="descripcion" id="descripcion" rows="4"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="control mt-5">
+                            <button type="button" onclick="guardarComentario()" class="button is-success is-fullwidth">
+                                <span class="icon"><i class="fas fa-paper-plane"></i></span>
+                                <span>Publicar Comentario</span>
+                            </button>
+                            <a href="pescados.html" class="button is-text is-fullwidth mt-2">Volver a la tienda</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column">
+                    <div class="table-container">
+                        <table class="table is-striped is-hoverable is-fullwidth">
+                            <thead>
+                                <tr>
+                                    <th class="has-text-info"><i class="fas fa-user mr-2"></i> Cliente</th>
+                                    <th class="has-text-info"><i class="fas fa-comment-alt mr-2"></i> Opinión</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="2" class="has-text-centered p-5">
+                                        <span class="icon is-large"><i class="fas fa-spinner fa-pulse"></i></span> Cargando opiniones...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>  
+        </div>
+    </section>    
+
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <strong>MiPrimeraPescadería</strong>. Calidad y frescura garantizada.
+            </p>
+            <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">
+                &copy; 2026 MiPrimeraPescadería. Todos los derechos reservados.
+            </p>
+            <div class="mt-2">
+                <span class="icon is-small mx-2"><i class="fab fa-facebook"></i></span>
+                <span class="icon is-small mx-2"><i class="fab fa-instagram"></i></span>
+                <span class="icon is-small mx-2"><i class="fab fa-twitter"></i></span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+            if ($navbarBurgers.length > 0) {
+                $navbarBurgers.forEach( el => {
+                    el.addEventListener('click', () => {
+                        const target = el.dataset.target;
+                        const $target = document.getElementById(target);
+                        el.classList.toggle('is-active');
+                        $target.classList.toggle('is-active');
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PESCADERÍA - Gestión de Ficheros</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+    <link rel="stylesheet" href="estilos.css"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    
+    <script>
+        // --- 1. LÓGICA DE SUBIDA ---
+        function enviarArchivo(){
+            const formData = new FormData();
+            let fileInput = document.getElementById("fichero");
+            
+            if(fileInput.files.length === 0){
+                alert("Por favor, selecciona un archivo.");
+                return;
+            }
+
+            // Usamos el nombre original si el usuario no escribe uno
+            let nombreGuardar = document.getElementById("nombre").value || fileInput.files[0].name;
+
+            formData.append('fichero', fileInput.files[0]);
+            formData.append('nombre', nombreGuardar);
+            
+            // Enviamos a la API de Python
+            fetch("/api/ficheros/", {method: 'POST', body: formData})
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status == "OK"){
+                        alert("✅ Archivo subido correctamente: " + nombreGuardar);
+                        // Limpiar campos
+                        document.getElementById("nombre").value = "";
+                        fileInput.value = "";
+                        // Resetear el texto del input file
+                        document.getElementById('filename-display').innerHTML = "Sin archivo";
+                    } else {
+                        alert("❌ Error al subir el archivo.");
+                    }
+                })
+                .catch(error => { 
+                    console.error(error); 
+                    alert("⚠️ Error de conexión con el servidor."); 
+                });
+        }
+
+// --- 2. LÓGICA DE VISUALIZACIÓN (MODIFICADA) ---
+        function visualizarArchivo(){
+            let nombre = document.getElementById("nombreArchivo").value;
+            let visor = document.getElementById("visorContenido");
+            let linkPrueba = document.getElementById("linkPrueba");
+            
+            if(!nombre){
+                alert("Escribe el nombre del archivo para buscarlo.");
+                return;
+            }
+
+            let ruta = "/archivos/" + nombre;
+            
+            // Actualizamos el enlace de diagnóstico
+            linkPrueba.href = ruta;
+            linkPrueba.innerHTML = `<span class="icon"><i class="fas fa-external-link-alt"></i></span> <span>Abrir <b>${nombre}</b> en pestaña nueva</span>`;
+            linkPrueba.style.display = "inline-block";
+
+            // Detectamos extensión
+            let extension = nombre.split('.').pop().toLowerCase();
+            let html = "";
+
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension)) {
+                html = `<figure class="image">
+                            <img src="${ruta}" alt="No se pudo cargar la imagen" style="max-height: 500px; width: auto; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 8px;">
+                        </figure>`;
+            } else if (extension === 'pdf') {
+                html = `<embed src="${ruta}" type="application/pdf" width="100%" height="600px" style="border-radius: 8px;" />`;
+            } else {
+                html = `<iframe src="${ruta}" width="100%" height="600px" style="border: 1px solid #dbdbdb; background: white; border-radius: 8px;">
+                            Tu navegador no soporta la previsualización de este archivo.
+                        </iframe>`;
+            }
+
+            visor.innerHTML = html;
+        }
+
+        // --- 3. LÓGICA DEL MENÚ MÓVIL ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+            if ($navbarBurgers.length > 0) {
+                $navbarBurgers.forEach( el => {
+                    el.addEventListener('click', () => {
+                        const target = el.dataset.target;
+                        const $target = document.getElementById(target);
+                        el.classList.toggle('is-active');
+                        $target.classList.toggle('is-active');
+                    });
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+    
+    <nav class="navbar is-info" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="pescados.html">
+                <span class="icon is-medium mr-2"><i class="fas fa-fish"></i></span>
+                <strong>MIPRIMERAPESCADERIA</strong>
+            </a>
+
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="miMenu">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div id="miMenu" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="pescados.html">Listado de Pescados</a>
+                <a class="navbar-item" href="agregar_pescado.html">Agregar Pescado</a>
+                <a class="navbar-item is-active" href="ficheros.html">Gestión de Ficheros</a>
+                <a class="navbar-item" href="comentarios.html">Reseñas</a>
+            </div>
+            
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <div class="buttons">
+                        <a class="button is-primary" href="registro.html"><strong>Registrarse</strong></a>
+                        <a class="button is-light" href="index.html">Salir</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="section">
+        <div class="container">
+            <h1 class="title is-3 has-text-centered mb-6">Gestión de Documentos y Fotos</h1>
+            
+            <div class="columns is-variable is-8">
+                
+                <div class="column is-one-third">
+                    <div class="box has-background-light">
+                        <h2 class="title is-4 has-text-info">
+                            <span class="icon"><i class="fas fa-upload"></i></span> Subir Archivo
+                        </h2>
+                        
+                        <div class="field">
+                            <label class="label">Nombre Personalizado (Opcional)</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" placeholder="Ej: menu_hoy.pdf" id="nombre">
+                                <span class="icon is-small is-left"><i class="fas fa-tag"></i></span>
+                            </div>
+                            <p class="help">Si lo dejas vacío, se guardará con su nombre original.</p>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Seleccionar Archivo</label>
+                            <div class="control">
+                                <div class="file has-name is-fullwidth is-info">
+                                    <label class="file-label">
+                                        <input class="file-input" type="file" id="fichero" onchange="document.getElementById('filename-display').innerHTML = this.files[0].name;">
+                                        <span class="file-cta">
+                                            <span class="file-icon"><i class="fas fa-folder-open"></i></span>
+                                            <span class="file-label">Examinar...</span>
+                                        </span>
+                                        <span class="file-name" id="filename-display">
+                                            Sin archivo
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="control mt-5">
+                            <button onclick="enviarArchivo()" class="button is-success is-fullwidth is-medium">
+                                <span class="icon"><i class="fas fa-cloud-upload-alt"></i></span>
+                                <span>Subir Archivo</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column">
+                    <div class="box">
+                        <h2 class="title is-4 has-text-info">
+                            <span class="icon"><i class="fas fa-eye"></i></span> Visualizar Contenido
+                        </h2>
+                        
+                        <div class="notification is-warning is-light p-3 is-size-7">
+                            <span class="icon"><i class="fas fa-exclamation-circle"></i></span>
+                            Recuerda escribir el nombre exacto con su extensión (ej: <strong>merluza.jpg</strong> o <strong>carta.pdf</strong>).
+                        </div>
+
+                        <div class="field has-addons">
+                            <div class="control is-expanded">
+                                <input class="input is-medium" type="text" placeholder="Nombre del archivo..." id="nombreArchivo">
+                            </div>
+                            <div class="control">
+                                <button onclick="visualizarArchivo()" class="button is-info is-medium">
+                                    Buscar y Ver
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="has-text-centered mb-4">
+                            <a id="linkPrueba" href="#" target="_blank" class="button is-ghost is-small" style="display:none; text-decoration: none;"></a>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div id="visorContenido" class="has-text-centered" style="min-height: 300px; display: flex; align-items: center; justify-content: center; background-color: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;">
+                            <p class="has-text-grey-light is-italic">
+                                <span class="icon is-large"><i class="fas fa-image fa-2x"></i></span><br>
+                                El archivo aparecerá aquí...
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            
+            <div class="has-text-centered mt-5">
+                <a href="pescados.html" class="button is-text">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>Volver al listado</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <strong>MiPrimeraPescadería</strong>. Calidad y frescura garantizada.
+            </p>
+            <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">
+                &copy; 2026 MiPrimeraPescadería. Todos los derechos reservados.
+            </p>
+            <div class="mt-2">
+                <span class="icon is-small mx-2"><i class="fab fa-facebook"></i></span>
+                <span class="icon is-small mx-2"><i class="fab fa-instagram"></i></span>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

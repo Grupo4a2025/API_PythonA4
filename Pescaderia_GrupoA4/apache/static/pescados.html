@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>PESCADERÍA - Listado de Productos</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+    <link rel="stylesheet" href="estilos.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+    <style>
+        /* Estilos específicos para la tabla de productos */
+        .table-wrapper {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        
+        .action-cell {
+            white-space: nowrap;
+        }
+
+        .font-numeric {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+        }
+    </style>
+
+    <script>
+        var myHeaders = new Headers();
+        myHeaders.append("Content-Type", "application/json");
+
+        onload = function(){
+            pedirPescados();
+        }
+
+        function pintarPescados(lista){
+            let tbody = document.getElementsByTagName("tbody")[0];
+            tbody.innerHTML = "";
+
+            if(lista.length === 0){
+                tbody.innerHTML = `<tr><td colspan="8" class="has-text-centered p-5">No hay productos disponibles. ¡Añade uno nuevo!</td></tr>`;
+                return;
+            }
+
+            lista.forEach(pescado => {
+                let precio = parseFloat(pescado.precio);
+               
+                let valorIVA = pescado.iva ? parseFloat(pescado.iva) : 0;
+                
+                // 2. Calculamos el Total sumando Base + IVA de Python
+                let precioTotal = (precio + valorIVA).toFixed(2);
+                
+                // Lógica para que se vean las fotos (locales o externas)
+                let rutaFoto = (pescado.foto && pescado.foto.startsWith('http')) 
+                    ? pescado.foto 
+                    : "/archivos/" + (pescado.foto || 'placeholder.png');
+
+                let texto = `<tr>
+                        <td class="is-vcentered has-text-centered">
+                            <figure class="image is-48x48" style="margin: 0 auto;">
+                                <img src="${rutaFoto}" class="is-rounded" style="height: 100%; object-fit: cover;" alt="${pescado.nombre}" 
+                                onerror="this.src='https://via.placeholder.com/50?text=Fish'">
+                            </figure>
+                        </td>
+                        <td class="is-vcentered has-text-weight-bold has-text-info">${pescado.nombre}</td>
+                        <td class="is-vcentered is-size-7" style="max-width: 200px;">${pescado.descripcion}</td>
+                        <td class="is-vcentered">
+                            <span class="tag is-light is-info is-rounded">
+                                <i class="fas fa-map-marker-alt mr-1"></i> ${pescado.origen}
+                            </span>
+                        </td> 
+                        <td class="is-vcentered has-text-right font-numeric">${precio.toFixed(2)} €</td>
+                        
+                        <td class="is-vcentered has-text-right has-text-success font-numeric">
+                            <span class="is-size-5">${precioTotal} €</span>
+                            <br>
+                            <span class="is-size-7 has-text-grey-light">(IVA: ${valorIVA.toFixed(2)}€)</span>
+                        </td>
+                        
+                        <td class="is-vcentered has-text-centered action-cell">
+                            <a href="editar_pescado.html?id=${pescado.id}" class="button is-small is-primary is-outlined tooltip" title="Editar">
+                                <span class="icon"><i class="fas fa-edit"></i></span>
+                            </a>
+                        </td>
+                        <td class="is-vcentered has-text-centered action-cell">
+                            <button class="button is-small is-danger is-outlined" onclick="eliminarPescado(${pescado.id})" title="Eliminar">
+                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                            </button>
+                        </td>
+                    </tr>`;
+                tbody.innerHTML += texto;                            
+            });
+        }
+        // ----------------------------------------
+
+        function pedirPescados(){
+            var requestOptions = { method: 'GET', headers: myHeaders };
+
+            fetch("/api/pescados/", requestOptions)
+                .then(response => response.json())
+                .then(result => {
+                    if(Array.isArray(result)){
+                        pintarPescados(result);
+                    } else {
+                        console.error("Formato inesperado:", result);
+                    }
+                })
+                .catch(error => {
+                    console.log('error', error);
+                });
+        }
+
+        function eliminarPescado(id){
+            if(!confirm("⚠️ ¿Estás seguro de que quieres eliminar este producto permanentemente?")) return;
+
+            var requestOptions = { method: 'DELETE', headers: myHeaders };
+
+            fetch("/api/pescados/" + id, requestOptions)
+                .then(response => response.json())
+                .then(result => {
+                    // Si devuelve OK, recargamos la lista
+                    if (result.status == "OK" || result.mensaje == "Pescado eliminado correctamente"){
+                        pedirPescados(); 
+                    } else {
+                        // A veces la API devuelve OK aunque falle algo interno, recargamos por si acaso
+                        pedirPescados();
+                    }
+                })
+                .catch(error => { 
+                    alert("⚠️ Error de conexión."); 
+                });
+        }
+
+        function cerrarSesion(){
+            fetch("/api/usuarios/logout", {method: 'GET', headers: myHeaders})
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status == "OK") location.href = "index.html";
+                })
+                .catch(e => alert("Error al salir"));
+        }
+    </script>
+</head>
+<body>
+
+    <nav class="navbar is-info" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="pescados.html">
+                <span class="icon is-medium mr-2"><i class="fas fa-fish"></i></span>
+                <strong>MIPRIMERAPESCADERIA</strong>
+            </a>
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="miMenu">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div id="miMenu" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item is-active" href="pescados.html">Listado de Pescados</a>
+                <a class="navbar-item" href="agregar_pescado.html">Agregar Pescado</a>
+                <a class="navbar-item" href="ficheros.html">Gestión de Ficheros</a>
+                <a class="navbar-item" href="comentarios.html">Reseñas</a>
+            </div>
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <button class="button is-danger is-light is-small" onclick="cerrarSesion()">
+                        <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="section">
+        <div class="container">
+            
+            <div class="level mb-6">
+                <div class="level-left">
+                    <div>
+                        <h1 class="title is-3 has-text-info">Nuestros Productos</h1>
+                        <p class="subtitle is-6 has-text-grey">Gestiona el inventario de la tienda</p>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <a href="agregar_pescado.html" class="button is-success is-medium shadow-btn">
+                        <span class="icon"><i class="fas fa-plus-circle"></i></span>
+                        <span>Nuevo Producto</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="table is-striped is-hoverable is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th class="has-text-centered"><i class="fas fa-camera has-text-grey-light"></i></th>
+                            <th><i class="fas fa-tag mr-1 has-text-info"></i> Nombre</th>
+                            <th><i class="fas fa-align-left mr-1 has-text-info"></i> Descripción</th>
+                            <th><i class="fas fa-globe mr-1 has-text-info"></i> Origen</th> 
+                            <th class="has-text-right">Precio Base</th>
+                            <th class="has-text-right">PVP (+IVA)</th>
+                            <th class="has-text-centered">Editar</th>
+                            <th class="has-text-centered">Borrar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="8" class="has-text-centered p-5"><i class="fas fa-spinner fa-pulse"></i> Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>  
+    </section>    
+
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <strong>MiPrimeraPescadería</strong>. Calidad y frescura garantizada.
+            </p>
+            <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">
+                &copy; 2026 MiPrimeraPescadería. Todos los derechos reservados.
+            </p>
+            <div class="mt-2">
+                <span class="icon is-small mx-2"><i class="fab fa-facebook"></i></span>
+                <span class="icon is-small mx-2"><i class="fab fa-instagram"></i></span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+            if ($navbarBurgers.length > 0) {
+                $navbarBurgers.forEach( el => {
+                    el.addEventListener('click', () => {
+                        const target = el.dataset.target;
+                        const $target = document.getElementById(target);
+                        el.classList.toggle('is-active');
+                        $target.classList.toggle('is-active');
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
