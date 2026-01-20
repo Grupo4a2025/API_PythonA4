@@ -1,0 +1,58 @@
+services:
+  mariadb:
+    image: mariadb
+    container_name: mariadba4
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: example
+      MARIADB_USER: agente
+      MARIADB_PASSWORD: 0traClave
+      MARIADB_DATABASE: ciber
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./Pescados.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    environment:
+      - PMA_HOST=mariadb
+    ports:
+      - 9093:80
+    depends_on:
+      - mariadb
+
+  python:
+    build: ./api
+    container_name: pythona4
+    environment:
+      DB_USERNAME: root
+      DB_PASSWORD: example
+      DB_DATABASE: ciber
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      PORT: 8080
+      HOST: 0.0.0.0
+    depends_on:
+      - mariadb
+    volumes:
+      # Montamos la carpeta local en /app/static
+      - ./apache/static:/app/static
+
+  apache-waf:
+    build: ./apache
+    ports:
+      - 9090:80
+    depends_on:
+      - python
+    links:
+      - python
+    volumes:
+      # CAMBIO REALIZADO AQUÍ:
+      # Antes: - ./apache/static:/usr/local/apache2/htdocs
+      # Ahora: Coincide con el DocumentRoot del demo.apache.conf
+      - ./apache/static:/var/www/html/
+
+volumes:
+  mariadb_data:

@@ -1,0 +1,139 @@
+/* --- IMPORTAR FUENTE MODERNA (Poppins) --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+:root {
+    /* Paleta de Colores "Océano Premium" */
+    --primary-dark: #0f172a;    /* Azul noche muy oscuro */
+    --primary-blue: #0ea5e9;    /* Azul océano vibrante */
+    --accent-gold: #f59e0b;     /* Dorado para acciones importantes */
+    --bg-light: #f8fafc;        /* Blanco grisáceo muy suave */
+    --surface-white: #ffffff;   /* Blanco puro */
+    --text-main: #334155;       /* Gris oscuro para texto */
+}
+
+/* --- ESTILOS GENERALES --- */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+section.section {
+    flex: 1; /* Esto empuja el footer hacia abajo */
+}
+
+/* --- NAVBAR (Barra Superior) --- */
+.navbar.is-info {
+    background: var(--primary-dark) !important; /* Degradado sutil */
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.navbar-item, .navbar-link {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.navbar-item.is-active {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    font-weight: 700;
+}
+
+/* --- CAJAS Y TARJETAS (Glassmorphism sutil) --- */
+.box, .card {
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background-color: var(--surface-white);
+}
+
+.box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* --- FORMULARIOS (Inputs modernos) --- */
+.input, .textarea, .select select {
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    box-shadow: none;
+    transition: all 0.3s;
+    padding-top: 22px; 
+    padding-bottom: 22px; /* Inputs más altos y cómodos */
+}
+
+.input:focus, .textarea:focus, .select select:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+}
+
+/* --- BOTONES (Elegantes) --- */
+.button {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: none;
+}
+
+.button.is-success {
+    background-color: var(--primary-blue); /* Cambiamos verde por azul moderno */
+    box-shadow: 0 4px 14px 0 rgba(14, 165, 233, 0.39);
+}
+
+.button.is-success:hover {
+    background-color: #0284c7;
+    transform: translateY(-1px);
+}
+
+.button.is-info {
+    background-color: var(--primary-dark);
+}
+
+/* Botón de "Ver" o acciones secundarias */
+.button.is-primary {
+    background-color: var(--accent-gold);
+    color: white;
+}
+.button.is-primary:hover {
+    background-color: #d97706;
+}
+
+/* --- TÍTULOS --- */
+.title {
+    color: var(--primary-dark);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+.subtitle {
+    color: #64748b;
+}
+
+/* --- FOOTER MODERNO --- */
+.footer {
+    background-color: var(--primary-dark);
+    color: white;
+    padding: 3rem 1.5rem;
+    margin-top: auto; /* Asegura que se quede abajo */
+}
+
+.footer p {
+    color: #94a3b8;
+}
+
+.footer strong {
+    color: var(--surface-white);
+}
+
+/* --- MEJORAS VISUALES EN TABLAS Y LISTAS --- */
+.table {
+    border-radius: 12px;
+    overflow: hidden;
+}
+.table thead th {
+    background-color: var(--bg-light);
+    color: var(--primary-dark);
+    border: none;
+}

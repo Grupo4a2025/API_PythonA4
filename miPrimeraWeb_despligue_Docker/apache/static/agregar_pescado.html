@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>PESCADERÍA - Agregar Producto</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+    <link rel="stylesheet" href="estilos.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+    <script>
+        // --- 1. FUNCIÓN PARA VER LA FOTO NADA MÁS ELEGIRLA ---
+        function previsualizar() {
+            let fileInput = document.getElementById("fichero");
+            let preview = document.getElementById("img_preview");
+            let nameDisplay = document.getElementById("filename-display");
+            
+            if (fileInput.files && fileInput.files[0]) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    // Mostrar el nombre del archivo en la cajita
+                    nameDisplay.innerHTML = fileInput.files[0].name;
+                }
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+
+        // --- 2. FUNCIÓN INTELIGENTE: SUBIR FOTO + GUARDAR DATOS ---
+        async function guardar(){
+            // Recogemos datos del formulario
+            let nombre = document.getElementById("nombre").value;
+            let descripcion = document.getElementById("descripcion").value;
+            let precio = document.getElementById("precio").value;
+            let origen = document.getElementById("origen").value; 
+            let fileInput = document.getElementById("fichero");
+
+            // Validaciones básicas
+            if(nombre.trim() === "" || precio.trim() === "") {
+                alert("⚠️ El nombre y el precio son obligatorios.");
+                return;
+            }
+            
+            // Validación de foto obligatoria
+            if(fileInput.files.length === 0) {
+                alert("⚠️ Por favor, selecciona una foto para el pescado.");
+                return;
+            }
+
+            try {
+                // --- PASO A: SUBIR LA IMAGEN A LA CARPETA ---
+                let nombreArchivo = fileInput.files[0].name;
+                let formData = new FormData();
+                formData.append("fichero", fileInput.files[0]);
+                formData.append("nombre", nombreArchivo);
+
+                // Enviamos la foto a la API de ficheros
+                let resFichero = await fetch("/api/ficheros/", {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                let dataFichero = await resFichero.json();
+
+                if(dataFichero.status !== "OK"){
+                    throw new Error("Error subiendo la imagen: " + dataFichero.mensaje);
+                }
+
+                // --- PASO B: GUARDAR EL PESCADO EN LA BASE DE DATOS ---
+                // Ahora construimos el JSON. En el campo 'foto' ponemos el nombre del archivo
+                let datosPescado = JSON.stringify({
+                    "nombre": nombre,
+                    "descripcion": descripcion,
+                    "precio": precio,
+                    "origen": origen,
+                    "foto": nombreArchivo // ¡Aquí está la magia!
+                });
+
+                let resBD = await fetch("/api/pescados/", {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: datosPescado
+                });
+
+                let dataBD = await resBD.json();
+
+                if (dataBD.status == "OK"){
+                    alert("✅ Pescado y foto guardados correctamente");
+                    location.href = "pescados.html";
+                } else {
+                    alert("❌ Error al guardar en base de datos: " + dataBD.mensaje);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert("⚠️ Ocurrió un error: " + error.message);
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <nav class="navbar is-info" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="pescados.html">
+                <span class="icon is-medium mr-2"><i class="fas fa-fish"></i></span>
+                <strong>MIPRIMERAPESCADERIA</strong>
+            </a>
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="miMenu">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div id="miMenu" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="pescados.html">Listado de Pescados</a>
+                <a class="navbar-item is-active" href="agregar_pescado.html">Agregar Pescado</a>
+                <a class="navbar-item" href="ficheros.html">Gestión de Ficheros</a>
+            </div>
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <div class="buttons">
+                        <a class="button is-light" href="index.html">Salir</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-half"> 
+                    <div class="box p-5">
+                        <h3 class="title is-3 has-text-centered mb-5">
+                            <span class="icon has-text-info"><i class="fas fa-plus-circle"></i></span>
+                            <span>Nuevo Producto</span>
+                        </h3>
+                        
+                        <div class="field">
+                            <label class="label">Nombre del Pescado</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" placeholder="Ej: Merluza del Cantábrico" name="nombre" id="nombre">
+                                <span class="icon is-small is-left"><i class="fas fa-tag"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Descripción</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" placeholder="Detalles del corte o calidad" name="descripcion" id="descripcion">
+                                <span class="icon is-small is-left"><i class="fas fa-align-left"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Precio (€/kg)</label>
+                                    <div class="control has-icons-left">
+                                        <input class="input" type="number" step="0.01" placeholder="0.00" name="precio" id="precio">
+                                        <span class="icon is-small is-left"><i class="fas fa-euro-sign"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Origen</label>
+                                    <div class="control has-icons-left">
+                                        <input class="input" type="text" placeholder="Ej: Vigo" name="origen" id="origen">
+                                        <span class="icon is-small is-left"><i class="fas fa-globe-europe"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="field mt-4">
+                            <label class="label">Fotografía del Producto</label>
+                            
+                            <div class="file has-name is-fullwidth is-info">
+                                <label class="file-label">
+                                    <input class="file-input" type="file" id="fichero" accept="image/*" onchange="previsualizar()">
+                                    <span class="file-cta">
+                                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                        <span class="file-label">Elegir foto...</span>
+                                    </span>
+                                    <span class="file-name" id="filename-display">
+                                        Ningún archivo seleccionado
+                                    </span>
+                                </label>
+                            </div>
+
+                            <figure class="image is-128x128 mt-3" style="margin: 0 auto;">
+                                <img id="img_preview" src="https://via.placeholder.com/128?text=Foto" class="is-rounded" style="object-fit: cover; border: 3px solid #eee; height: 128px; width: 128px;">
+                            </figure>
+                        </div>
+
+                        <div class="field is-grouped is-grouped-centered mt-6">
+                            <div class="control">
+                                <button type="button" onclick="guardar()" class="button is-success is-medium">
+                                    <span class="icon"><i class="fas fa-save"></i></span>
+                                    <span>Guardar Pescado</span>
+                                </button>
+                            </div>
+                            <div class="control">
+                                <a href="pescados.html" class="button is-light is-medium">
+                                    Cancelar
+                                </a>
+                            </div>
+                        </div>
+
+                    </div> 
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <strong>MiPrimeraPescadería</strong>. Calidad y frescura garantizada.
+            </p>
+            <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">
+                &copy; 2026 MiPrimeraPescadería. Todos los derechos reservados.
+            </p>
+            <div class="mt-2">
+                <span class="icon is-small mx-2"><i class="fab fa-facebook"></i></span>
+                <span class="icon is-small mx-2"><i class="fab fa-instagram"></i></span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+            if ($navbarBurgers.length > 0) {
+                $navbarBurgers.forEach( el => {
+                    el.addEventListener('click', () => {
+                        const target = el.dataset.target;
+                        const $target = document.getElementById(target);
+                        el.classList.toggle('is-active');
+                        $target.classList.toggle('is-active');
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
