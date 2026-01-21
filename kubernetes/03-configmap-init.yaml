@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-script
+  namespace: grupoa4
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS ciber;
+    USE ciber;
+
+    CREATE TABLE pescados(
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(255) NOT NULL,
+        descripcion VARCHAR(255) NOT NULL,
+        precio DECIMAL(9,2) NOT NULL,
+        foto VARCHAR(255),
+        origen VARCHAR(255)  
+    );
+
+    CREATE TABLE comentarios(
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        usuario VARCHAR(255) NOT NULL,
+        descripcion VARCHAR(255) NOT NULL
+    );
+
+    CREATE TABLE usuarios(
+        usuario VARCHAR(100) NOT NULL PRIMARY KEY,
+        clave VARCHAR(255) NOT NULL,
+        perfil VARCHAR(100) NOT NULL
+    );
+
+    INSERT INTO `usuarios` (`usuario`, `clave`, `perfil`) VALUES ('root','1234', 'admin');
+
+    INSERT INTO `pescados` (`nombre`, `descripcion`, `precio`, `foto`, `origen`) VALUES 
+    ('Merluza de Pincho', 'Merluza fresca del día, ideal para salsa verde.', 12.50, 'pescado1.png', 'Lonja de Burela'),
+    ('Salmón Noruego', 'Lomos limpios ricos en Omega 3.', 18.90, 'pescado2.png', 'Noruega'),
+    ('Dorada Real', 'Ideal para hacer a la sal o al horno.', 9.50, 'pescado3.png', 'Mediterráneo'),
+    ('Sardinas Frescas', 'Perfectas para espetos o a la plancha.', 5.20, 'pescado4.png', 'Costa de Málaga'),
+    ('Emperador', 'Filetes sin espinas, textura firme.', 16.75, 'pescado5.png', 'Atlántico Norte');
