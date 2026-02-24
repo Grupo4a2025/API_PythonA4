@@ -3,7 +3,8 @@ FROM python:3.9
 WORKDIR /app
 
 COPY web/requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt \
+    && pip install contrast-security
 
 COPY web/ .
 
