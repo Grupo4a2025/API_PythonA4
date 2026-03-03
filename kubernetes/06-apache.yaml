@@ -12,25 +12,12 @@ spec:
     metadata:
       labels:
         app: apache
-        env: grupoa4  # Añadido para consistencia con los logs
-      annotations:
-        # --- Configuración Elastic/Filebeat ---
-        co.elastic.logs/enabled: "true"
-        co.elastic.logs/module: apache
-        # Nota: Si tu Apache escribe en stdout/stderr (como configuramos antes),
-        # esta ruta interna podría no ser necesaria, pero la dejo según tu petición.
-        co.elastic.logs.paths: /var/log/apache2/*.log
-        co.elastic.logs.fileset.access.enabled: "true"
-        co.elastic.logs.fileset.error.enabled: "true"
-        # Ajustado a tus nombres reales:
-        co.elastic.logs/processors.add_fields.fields.service: apache
-        co.elastic.logs/processors.add_fields.fields.env: grupoa4
     spec:
-      imagePullSecrets:
+      imagePullSecrets:              # NUEVO: Credenciales para Docker Hub
       - name: regcred
       containers:
       - name: apache
-        image: grupo4a/apachea4:1.3
+        image: grupo4a/apache-grupoa4:v1
         imagePullPolicy: Always
         ports:
         - containerPort: 80
