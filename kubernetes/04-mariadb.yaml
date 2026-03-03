@@ -1,3 +1,19 @@
+# --- PARTE 1: El disco físico que falta (PersistentVolume) ---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-mariadb-grupoa4
+spec:
+  storageClassName: manual  # Clase que pide tu PVC
+  capacity:
+    storage: 1Gi             # Tamaño suficiente para MariaDB
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/mnt/data/mariadb" # Carpeta donde se guardarán los datos en el nodo
+---
+# --- PARTE 2: Tu Deployment original de MariaDB ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,19 +52,20 @@ spec:
       volumes:
       - name: mysql-persistent-storage
         persistentVolumeClaim:
-          claimName: grupoa4
+          claimName: grupoa4 # Este PVC ahora encontrará al PV de arriba
       - name: mysql-init
         configMap:
           name: mysql-init-script
 ---
+# --- PARTE 3: Tu Service original ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mariadba4  # Nombre coincide con Docker Compose para resolución DNS
+  name: mariadba4  # Nombre para resolución DNS interna
   namespace: grupoa4
 spec:
   ports:
   - port: 3306
   selector:
     app: mariadb
-  clusterIP: None # Headless service opcional, o estándar
+  clusterIP: None # Headless service
