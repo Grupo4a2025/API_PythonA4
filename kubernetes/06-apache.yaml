@@ -13,14 +13,23 @@ spec:
       labels:
         app: apache
     spec:
-      imagePullSecrets:              # NUEVO: Credenciales para Docker Hub
+      imagePullSecrets:
       - name: regcred
       containers:
       - name: apache
-        image: grupo4a/apache-grupoa4:v1
+        # CORREGIDO: Nombre coincidente con REGISTRY_WAF del Jenkinsfile
+        image: grupo4a/apachea4:latest 
         imagePullPolicy: Always
         ports:
         - containerPort: 80
+        # RECOMENDADO: Recursos para evitar que el pod se caiga por falta de RAM
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+          requests:
+            memory: "128Mi"
+            cpu: "200m"
 ---
 apiVersion: v1
 kind: Service
@@ -34,4 +43,4 @@ spec:
   ports:
     - port: 80
       targetPort: 80
-      nodePort: 30604
+      nodePort: 30604  # Puerto de entrada para Cypress y ZAP
