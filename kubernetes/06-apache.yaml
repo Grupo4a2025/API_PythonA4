@@ -10,19 +10,28 @@ spec:
       app: apache
   template:
     metadata:
+      # --- AQUÍ EMPIEZAN LAS ANOTACIONES DE ELASTICSEARCH ---
+      annotations:
+        co.elastic.logs/enabled: "true"
+        co.elastic.logs.paths: /var/log/apache2/*.log         
+        co.elastic.logs/module: apache
+        co.elastic.logs/fileset.access.enabled: "true"
+        co.elastic.logs/fileset.error.enabled: "true"
+        co.elastic.logs/processors.add_fields.fields.service: apache-grupoa4
+        co.elastic.logs/processors.add_fields.fields.env: grupoa4
+      # --- FIN DE LAS ANOTACIONES ---
       labels:
         app: apache
+        env: grupoa4  # Añadida la etiqueta de entorno
     spec:
       imagePullSecrets:
       - name: regcred
       containers:
       - name: apache
-        # CORREGIDO: Nombre coincidente con REGISTRY_WAF del Jenkinsfile
         image: grupo4a/apachea4:latest 
         imagePullPolicy: Always
         ports:
         - containerPort: 80
-        # RECOMENDADO: Recursos para evitar que el pod se caiga por falta de RAM
         resources:
           limits:
             memory: "256Mi"
@@ -43,4 +52,4 @@ spec:
   ports:
     - port: 80
       targetPort: 80
-      nodePort: 30604  # Puerto de entrada para Cypress y ZAP
+      nodePort: 30604
