@@ -1,41 +1,40 @@
 from flask import request, Blueprint, jsonify
 import controlador_ficheros
+import os
 
 bp = Blueprint('ficheros', __name__)
 
+# Configuración de seguridad para archivos
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
+MAX_FILE_SIZE = 5 * 1024 * 1024 # 5 MB
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @bp.route('/', methods=['POST']) 
 def upload():
-    """Recibe un archivo y un nombre para almacenarlo en el sistema."""
     try:
-        # Verificación básica de la existencia del archivo en la petición
         if 'fichero' not in request.files:
-            return jsonify({"status": "ERROR", "mensaje": "No se ha enviado ningún archivo"}), 400
+            return jsonify({"status": "ERROR", "mensaje": "Falta archivo"}), 400
             
         contenido = request.files['fichero'] 
         nombre = request.form.get("nombre")
         
-        if not nombre:
-            return jsonify({"status": "ERROR", "mensaje": "Falta el nombre del archivo"}), 400
+        if not nombre or not allowed_file(nombre) or len(nombre) > 100:
+            return jsonify({"status": "ERROR", "mensaje": "Nombre o extensión no válida"}), 400
 
-        # Llamada al controlador que ya aplica secure_filename
+        # Verificar tamaño del archivo (leyendo el cursor de la petición)
+        contenido.seek(0, os.SEEK_END)
+        file_length = contenido.tell()
+        contenido.seek(0, 0) # Reiniciar el cursor tras medir
+
+        if file_length > MAX_FILE_SIZE:
+            return jsonify({"status": "ERROR", "mensaje": "Archivo demasiado grande"}), 413
+
         respuesta, code = controlador_ficheros.guardar_fichero(nombre, contenido)
         
     except Exception as e:
-        print(f"Error crítico subiendo archivo: {e}", flush=True)
-        respuesta = {"status": "ERROR", "mensaje": "Error interno del servidor"}
-        code = 500
-        
-    return jsonify(respuesta), code
-
-@bp.route('/<archivo>', methods=['GET']) 
-def ver(archivo):
-    """Solicita la visualización del contenido de un archivo específico."""
-    try:
-        # El controlador se encarga de la apertura segura del archivo
-        respuesta, code = controlador_ficheros.ver_fichero(archivo)
-    except Exception as e:
-        print(f"Error al visualizar archivo: {e}", flush=True)
-        respuesta = {"status": "ERROR"}
-        code = 500
+        print(f"Error subiendo archivo: {e}", flush=True)
+        respuesta, code = {"status": "ERROR"}, 500
         
     return jsonify(respuesta), code
