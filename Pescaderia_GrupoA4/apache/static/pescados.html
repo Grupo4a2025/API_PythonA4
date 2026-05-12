@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
     <style>
-        /* Estilos específicos para la tabla de productos */
         .table-wrapper {
             background: white;
             border-radius: 12px;
@@ -20,160 +19,143 @@
             padding: 1rem;
             overflow-x: auto;
         }
-        
-        .action-cell {
-            white-space: nowrap;
-        }
-
         .font-numeric {
             font-family: 'Courier New', Courier, monospace;
             font-weight: bold;
         }
+        .fish-thumb {
+            height: 48px;
+            width: 48px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #eee;
+        }
     </style>
 
     <script>
-        var myHeaders = new Headers();
-        myHeaders.append("Content-Type", "application/json");
+        // --- 1. CARGA INICIAL ---
+        window.onload = () => pedirPescados();
 
-        onload = function(){
-            pedirPescados();
-        }
-
+        // --- 2. RENDERIZADO SEGURO (Anti-XSS) ---
         function pintarPescados(lista){
-            let tbody = document.getElementsByTagName("tbody")[0];
+            const tbody = document.querySelector("tbody");
             tbody.innerHTML = "";
 
             if(lista.length === 0){
-                tbody.innerHTML = `<tr><td colspan="8" class="has-text-centered p-5">No hay productos disponibles. ¡Añade uno nuevo!</td></tr>`;
+                tbody.innerHTML = '<tr><td colspan="8" class="has-text-centered p-5">Inventario vacío.</td></tr>';
                 return;
             }
 
             lista.forEach(pescado => {
-                let precio = parseFloat(pescado.precio);
-               
-                let valorIVA = pescado.iva ? parseFloat(pescado.iva) : 0;
+                const row = tbody.insertRow();
                 
-                // 2. Calculamos el Total sumando Base + IVA de Python
-                let precioTotal = (precio + valorIVA).toFixed(2);
-                
-                // Lógica para que se vean las fotos (locales o externas)
-                let rutaFoto = (pescado.foto && pescado.foto.startsWith('http')) 
+                // Celda Foto
+                const cellFoto = row.insertCell();
+                cellFoto.className = "is-vcentered has-text-centered";
+                const rutaFoto = (pescado.foto && pescado.foto.startsWith('http')) 
                     ? pescado.foto 
-                    : "/archivos/" + (pescado.foto || 'placeholder.png');
+                    : `/archivos/${encodeURIComponent(pescado.foto || 'placeholder.png')}`;
+                cellFoto.innerHTML = `<img src="${rutaFoto}" class="fish-thumb" onerror="this.src='https://via.placeholder.com/50?text=Fish'">`;
 
-                let texto = `<tr>
-                        <td class="is-vcentered has-text-centered">
-                            <figure class="image is-48x48" style="margin: 0 auto;">
-                                <img src="${rutaFoto}" class="is-rounded" style="height: 100%; object-fit: cover;" alt="${pescado.nombre}" 
-                                onerror="this.src='https://via.placeholder.com/50?text=Fish'">
-                            </figure>
-                        </td>
-                        <td class="is-vcentered has-text-weight-bold has-text-info">${pescado.nombre}</td>
-                        <td class="is-vcentered is-size-7" style="max-width: 200px;">${pescado.descripcion}</td>
-                        <td class="is-vcentered">
-                            <span class="tag is-light is-info is-rounded">
-                                <i class="fas fa-map-marker-alt mr-1"></i> ${pescado.origen}
-                            </span>
-                        </td> 
-                        <td class="is-vcentered has-text-right font-numeric">${precio.toFixed(2)} €</td>
-                        
-                        <td class="is-vcentered has-text-right has-text-success font-numeric">
-                            <span class="is-size-5">${precioTotal} €</span>
-                            <br>
-                            <span class="is-size-7 has-text-grey-light">(IVA: ${valorIVA.toFixed(2)}€)</span>
-                        </td>
-                        
-                        <td class="is-vcentered has-text-centered action-cell">
-                            <a href="editar_pescado.html?id=${pescado.id}" class="button is-small is-primary is-outlined tooltip" title="Editar">
-                                <span class="icon"><i class="fas fa-edit"></i></span>
-                            </a>
-                        </td>
-                        <td class="is-vcentered has-text-centered action-cell">
-                            <button class="button is-small is-danger is-outlined" onclick="eliminarPescado(${pescado.id})" title="Eliminar">
-                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                            </button>
-                        </td>
-                    </tr>`;
-                tbody.innerHTML += texto;                            
+                // Celda Nombre
+                const cellNombre = row.insertCell();
+                cellNombre.className = "is-vcentered has-text-weight-bold has-text-info";
+                cellNombre.textContent = pescado.nombre; // ✅ SEGURIDAD: Texto plano
+
+                // Celda Descripción
+                const cellDesc = row.insertCell();
+                cellDesc.className = "is-vcentered is-size-7";
+                cellDesc.style.maxWidth = "200px";
+                cellDesc.textContent = pescado.descripcion;
+
+                // Celda Origen
+                const cellOrigen = row.insertCell();
+                cellOrigen.className = "is-vcentered";
+                const tag = document.createElement("span");
+                tag.className = "tag is-light is-info is-rounded";
+                tag.textContent = pescado.origen;
+                cellOrigen.appendChild(tag);
+
+                // Precios e IVA
+                const precioBase = parseFloat(pescado.precio || 0);
+                const valorIVA = parseFloat(pescado.iva || 0);
+                const precioTotal = (precioBase + valorIVA).toFixed(2);
+
+                const cellPrecioBase = row.insertCell();
+                cellPrecioBase.className = "is-vcentered has-text-right font-numeric";
+                cellPrecioBase.textContent = `${precioBase.toFixed(2)} €`;
+
+                const cellPrecioTotal = row.insertCell();
+                cellPrecioTotal.className = "is-vcentered has-text-right has-text-success font-numeric";
+                cellPrecioTotal.innerHTML = `<span class="is-size-5">${precioTotal} €</span><br><span class="is-size-7 has-text-grey-light">(IVA: ${valorIVA.toFixed(2)}€)</span>`;
+
+                // Botones de Acción
+                const cellEdit = row.insertCell();
+                cellEdit.className = "is-vcentered has-text-centered";
+                cellEdit.innerHTML = `<a href="editar_pescado.html?id=${pescado.id}" class="button is-small is-primary is-outlined"><i class="fas fa-edit"></i></a>`;
+
+                const cellDelete = row.insertCell();
+                cellDelete.className = "is-vcentered has-text-centered";
+                const btnDel = document.createElement("button");
+                btnDel.className = "button is-small is-danger is-outlined";
+                btnDel.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                btnDel.onclick = () => eliminarPescado(pescado.id);
+                cellDelete.appendChild(btnDel);
             });
         }
-        // ----------------------------------------
 
-        function pedirPescados(){
-            var requestOptions = { method: 'GET', headers: myHeaders };
-
-            fetch("/api/pescados/", requestOptions)
-                .then(response => response.json())
-                .then(result => {
-                    if(Array.isArray(result)){
-                        pintarPescados(result);
-                    } else {
-                        console.error("Formato inesperado:", result);
-                    }
-                })
-                .catch(error => {
-                    console.log('error', error);
-                });
+        // --- 3. COMUNICACIÓN CON API ---
+        async function pedirPescados(){
+            try {
+                const response = await fetch("/api/pescados/");
+                const result = await response.json();
+                if(Array.isArray(result)) pintarPescados(result);
+            } catch (error) {
+                console.error("Error al obtener datos:", error);
+            }
         }
 
-        function eliminarPescado(id){
-            if(!confirm("⚠️ ¿Estás seguro de que quieres eliminar este producto permanentemente?")) return;
+        async function eliminarPescado(id){
+            if(!confirm("⚠️ ¿Eliminar este producto permanentemente?")) return;
 
-            var requestOptions = { method: 'DELETE', headers: myHeaders };
-
-            fetch("/api/pescados/" + id, requestOptions)
-                .then(response => response.json())
-                .then(result => {
-                    // Si devuelve OK, recargamos la lista
-                    if (result.status == "OK" || result.mensaje == "Pescado eliminado correctamente"){
-                        pedirPescados(); 
-                    } else {
-                        // A veces la API devuelve OK aunque falle algo interno, recargamos por si acaso
-                        pedirPescados();
-                    }
-                })
-                .catch(error => { 
-                    alert("⚠️ Error de conexión."); 
-                });
+            try {
+                const response = await fetch(`/api/pescados/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.status === "OK") pedirPescados();
+            } catch (error) {
+                alert("⚠️ Error de conexión.");
+            }
         }
 
-        function cerrarSesion(){
-            fetch("/api/usuarios/logout", {method: 'GET', headers: myHeaders})
-                .then(r => r.json())
-                .then(res => {
-                    if (res.status == "OK") location.href = "index.html";
-                })
-                .catch(e => alert("Error al salir"));
+        async function cerrarSesion(){
+            await fetch("/api/usuarios/logout");
+            location.href = "index.html";
         }
     </script>
 </head>
 <body>
-
-    <nav class="navbar is-info" role="navigation" aria-label="main navigation">
+    <nav class="navbar is-info">
         <div class="navbar-brand">
             <a class="navbar-item" href="pescados.html">
                 <span class="icon is-medium mr-2"><i class="fas fa-fish"></i></span>
                 <strong>MIPRIMERAPESCADERIA</strong>
             </a>
-            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="miMenu">
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
+            <a role="button" class="navbar-burger" data-target="miMenu">
+                <span></span><span></span><span></span>
             </a>
         </div>
-
         <div id="miMenu" class="navbar-menu">
             <div class="navbar-start">
-                <a class="navbar-item is-active" href="pescados.html">Listado de Pescados</a>
-                <a class="navbar-item" href="agregar_pescado.html">Agregar Pescado</a>
-                <a class="navbar-item" href="ficheros.html">Gestión de Ficheros</a>
+                <a class="navbar-item is-active" href="pescados.html">Listado</a>
+                <a class="navbar-item" href="agregar_pescado.html">Agregar</a>
+                <a class="navbar-item" href="ficheros.html">Ficheros</a>
                 <a class="navbar-item" href="comentarios.html">Reseñas</a>
             </div>
             <div class="navbar-end">
                 <div class="navbar-item">
                     <button class="button is-danger is-light is-small" onclick="cerrarSesion()">
                         <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
-                        <span>Cerrar Sesión</span>
+                        <span>Salir</span>
                     </button>
                 </div>
             </div>
@@ -182,18 +164,14 @@
 
     <section class="section">
         <div class="container">
-            
             <div class="level mb-6">
                 <div class="level-left">
-                    <div>
-                        <h1 class="title is-3 has-text-info">Nuestros Productos</h1>
-                        <p class="subtitle is-6 has-text-grey">Gestiona el inventario de la tienda</p>
-                    </div>
+                    <h1 class="title is-3 has-text-info">Inventario de Productos</h1>
                 </div>
                 <div class="level-right">
-                    <a href="agregar_pescado.html" class="button is-success is-medium shadow-btn">
+                    <a href="agregar_pescado.html" class="button is-success is-medium">
                         <span class="icon"><i class="fas fa-plus-circle"></i></span>
-                        <span>Nuevo Producto</span>
+                        <span>Nuevo Pescado</span>
                     </a>
                 </div>
             </div>
@@ -202,53 +180,28 @@
                 <table class="table is-striped is-hoverable is-fullwidth">
                     <thead>
                         <tr>
-                            <th class="has-text-centered"><i class="fas fa-camera has-text-grey-light"></i></th>
-                            <th><i class="fas fa-tag mr-1 has-text-info"></i> Nombre</th>
-                            <th><i class="fas fa-align-left mr-1 has-text-info"></i> Descripción</th>
-                            <th><i class="fas fa-globe mr-1 has-text-info"></i> Origen</th> 
-                            <th class="has-text-right">Precio Base</th>
-                            <th class="has-text-right">PVP (+IVA)</th>
-                            <th class="has-text-centered">Editar</th>
-                            <th class="has-text-centered">Borrar</th>
+                            <th>Foto</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Origen</th>
+                            <th class="has-text-right">Base</th>
+                            <th class="has-text-right">PVP</th>
+                            <th colspan="2" class="has-text-centered">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="8" class="has-text-centered p-5"><i class="fas fa-spinner fa-pulse"></i> Cargando...</td></tr>
+                        <tr><td colspan="8" class="has-text-centered p-5">Cargando catálogo...</td></tr>
                     </tbody>
                 </table>
             </div>
-
-        </div>  
-    </section>    
-
-    <footer class="footer">
-        <div class="content has-text-centered">
-            <p>
-                <strong>MiPrimeraPescadería</strong>. Calidad y frescura garantizada.
-            </p>
-            <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">
-                &copy; 2026 MiPrimeraPescadería. Todos los derechos reservados.
-            </p>
-            <div class="mt-2">
-                <span class="icon is-small mx-2"><i class="fab fa-facebook"></i></span>
-                <span class="icon is-small mx-2"><i class="fab fa-instagram"></i></span>
-            </div>
         </div>
-    </footer>
+    </section>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-            if ($navbarBurgers.length > 0) {
-                $navbarBurgers.forEach( el => {
-                    el.addEventListener('click', () => {
-                        const target = el.dataset.target;
-                        const $target = document.getElementById(target);
-                        el.classList.toggle('is-active');
-                        $target.classList.toggle('is-active');
-                    });
-                });
-            }
+        // Lógica del burger menu
+        document.querySelector('.navbar-burger').addEventListener('click', function() {
+            this.classList.toggle('is-active');
+            document.getElementById(this.dataset.target).classList.toggle('is-active');
         });
     </script>
 </body>
