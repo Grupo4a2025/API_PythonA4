@@ -9,14 +9,13 @@ def create_app():
     app.config['JSON_AS_ASCII'] = False
     app.config['DEBUG'] = os.getenv('DEBUG', 'False').lower() == 'true'
 
-    # --- PREVENCIÓN XSS: Interceptor Global ---
+    # Interceptor Global para sanitizar XSS antes de que llegue a las rutas
     @app.before_request
     def clean_request():
         if request.is_json:
-            # Crea un nuevo objeto request.cleaned_json con los datos seguros
-            request.cleaned_json = sanitize_field(request.get_json())
+            # Crea un objeto limpio si hay JSON, o un dict vacío si es null
+            request.cleaned_json = sanitize_field(request.get_json() or {})
 
-    # Registro de Blueprints
     from rutas_usuarios import bp as usuarios_bp
     app.register_blueprint(usuarios_bp, url_prefix='/api/usuarios')
 
@@ -32,7 +31,7 @@ def create_app():
     @app.errorhandler(500)
     def server_error(error):
         print(f'Critical error in request: {error}', flush=True)
-        return jsonify({"status": "Internal Server Error", "msg": "Consulte los logs"}), 500
+        return jsonify({"status": "Internal Server Error"}), 500
 
     return app
 
@@ -41,6 +40,7 @@ if __name__ == '__main__':
     try:
         host = os.getenv('HOST', '0.0.0.0')
         port = int(os.getenv('PORT', 8080))
+        print(f"Iniciando servidor en {host}:{port}...", flush=True)
         app.run(host=host, port=port)
     except Exception as e:
-        print(f"No se pudo iniciar el servidor: {e}", flush=True)
+        print(f"Error starting server: {e}", flush=True)
