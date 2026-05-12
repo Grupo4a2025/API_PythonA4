@@ -12,51 +12,60 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
     <script>
-        // --- 1. FUNCIÓN PARA VER LA FOTO NADA MÁS ELEGIRLA ---
+        // --- 1. PREVISUALIZACIÓN SEGURA ---
         function previsualizar() {
-            let fileInput = document.getElementById("fichero");
-            let preview = document.getElementById("img_preview");
-            let nameDisplay = document.getElementById("filename-display");
+            const fileInput = document.getElementById("fichero");
+            const preview = document.getElementById("img_preview");
+            const nameDisplay = document.getElementById("filename-display");
             
             if (fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+
+                // Validación de tamaño en cliente (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert("⚠️ El archivo es demasiado grande (máx 5MB).");
+                    fileInput.value = "";
+                    return;
+                }
+
                 let reader = new FileReader();
                 reader.onload = function(e) {
                     preview.src = e.target.result;
-                    // Mostrar el nombre del archivo en la cajita
-                    nameDisplay.innerHTML = fileInput.files[0].name;
+                    // ✅ SEGURIDAD XSS: Usamos textContent en lugar de innerHTML
+                    nameDisplay.textContent = file.name;
                 }
-                reader.readAsDataURL(fileInput.files[0]);
+                reader.readAsDataURL(file);
             }
         }
 
-        // --- 2. FUNCIÓN INTELIGENTE: SUBIR FOTO + GUARDAR DATOS ---
+        // --- 2. GUARDADO CON VALIDACIÓN ESTRICTA ---
         async function guardar(){
-            let nombre = document.getElementById("nombre").value;
-            let descripcion = document.getElementById("descripcion").value;
-            let precio = document.getElementById("precio").value;
-            let origen = document.getElementById("origen").value; 
-            let fileInput = document.getElementById("fichero");
+            const nombre = document.getElementById("nombre").value;
+            const descripcion = document.getElementById("descripcion").value;
+            const precio = document.getElementById("precio").value;
+            const origen = document.getElementById("origen").value; 
+            const fileInput = document.getElementById("fichero");
 
-            // Validaciones básicas
-            if(nombre.trim() === "" || precio.trim() === "") {
-                alert("⚠️ El nombre y el precio son obligatorios.");
+            // Validaciones de longitud (coincidentes con el backend)
+            if(!nombre || nombre.length > 100 || !precio || isNaN(precio)) {
+                alert("⚠️ Datos inválidos. El nombre (máx 100) y precio numérico son obligatorios.");
                 return;
             }
             
-            // Validación de foto obligatoria
             if(fileInput.files.length === 0) {
-                alert("⚠️ Por favor, selecciona una foto para el pescado.");
+                alert("⚠️ Selecciona una foto (png, jpg, jpeg).");
                 return;
             }
 
             try {
-                // --- PASO A: SUBIR LA IMAGEN A LA CARPETA ---
-                let nombreArchivo = fileInput.files[0].name;
+                // --- PASO A: SUBIDA SEGURA DE IMAGEN ---
+                const file = fileInput.files[0];
+                const nombreArchivo = file.name;
+                
                 let formData = new FormData();
-                formData.append("fichero", fileInput.files[0]);
+                formData.append("fichero", file);
                 formData.append("nombre", nombreArchivo);
 
-                // Enviamos la foto a la API de ficheros
                 let resFichero = await fetch("/api/ficheros/", {
                     method: 'POST',
                     body: formData
@@ -65,17 +74,16 @@
                 let dataFichero = await resFichero.json();
 
                 if(dataFichero.status !== "OK"){
-                    throw new Error("Error subiendo la imagen: " + dataFichero.mensaje);
+                    throw new Error(dataFichero.mensaje || "Error al subir imagen");
                 }
 
-                // --- PASO B: GUARDAR EL PESCADO EN LA BASE DE DATOS ---
-                // Ahora construimos el JSON. En el campo 'foto' ponemos el nombre del archivo
-                let datosPescado = JSON.stringify({
+                // --- PASO B: GUARDADO PARAMETRIZADO EN BD ---
+                const datosPescado = JSON.stringify({
                     "nombre": nombre,
                     "descripcion": descripcion,
-                    "precio": precio,
+                    "precio": parseFloat(precio),
                     "origen": origen,
-                    "foto": nombreArchivo 
+                    "foto": dataFichero.filename // Usamos el nombre sanitizado por el servidor
                 });
 
                 let resBD = await fetch("/api/pescados/", {
@@ -87,45 +95,39 @@
                 let dataBD = await resBD.json();
 
                 if (dataBD.status == "OK"){
-                    alert("✅ Pescado y foto guardados correctamente");
+                    alert("✅ Producto registrado con éxito");
                     location.href = "pescados.html";
                 } else {
-                    alert("❌ Error al guardar en base de datos: " + dataBD.mensaje);
+                    alert("❌ Error: " + dataBD.mensaje);
                 }
 
             } catch (error) {
                 console.error('Error:', error);
-                alert("⚠️ Ocurrió un error: " + error.message);
+                alert("⚠️ Error en el proceso: " + error.message);
             }
         }
     </script>
 </head>
 <body>
-
     <nav class="navbar is-info" role="navigation" aria-label="main navigation">
         <div class="navbar-brand">
             <a class="navbar-item" href="pescados.html">
                 <span class="icon is-medium mr-2"><i class="fas fa-fish"></i></span>
                 <strong>MIPRIMERAPESCADERIA</strong>
             </a>
-            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="miMenu">
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
+            <a role="button" class="navbar-burger" aria-label="menu" data-target="miMenu">
+                <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
             </a>
         </div>
-
         <div id="miMenu" class="navbar-menu">
             <div class="navbar-start">
-                <a class="navbar-item" href="pescados.html">Listado de Pescados</a>
-                <a class="navbar-item is-active" href="agregar_pescado.html">Agregar Pescado</a>
-                <a class="navbar-item" href="ficheros.html">Gestión de Ficheros</a>
+                <a class="navbar-item" href="pescados.html">Listado</a>
+                <a class="navbar-item is-active" href="agregar_pescado.html">Agregar</a>
+                <a class="navbar-item" href="ficheros.html">Ficheros</a>
             </div>
             <div class="navbar-end">
                 <div class="navbar-item">
-                    <div class="buttons">
-                        <a class="button is-light" href="index.html">Salir</a>
-                    </div>
+                    <a class="button is-light" href="index.html">Salir</a>
                 </div>
             </div>
         </div>
@@ -144,7 +146,7 @@
                         <div class="field">
                             <label class="label">Nombre del Pescado</label>
                             <div class="control has-icons-left">
-                                <input class="input" type="text" placeholder="Ej: Merluza del Cantábrico" name="nombre" id="nombre">
+                                <input class="input" type="text" placeholder="Ej: Merluza" id="nombre" maxlength="100">
                                 <span class="icon is-small is-left"><i class="fas fa-tag"></i></span>
                             </div>
                         </div>
@@ -152,7 +154,7 @@
                         <div class="field">
                             <label class="label">Descripción</label>
                             <div class="control has-icons-left">
-                                <input class="input" type="text" placeholder="Detalles del corte o calidad" name="descripcion" id="descripcion">
+                                <input class="input" type="text" id="descripcion" maxlength="255">
                                 <span class="icon is-small is-left"><i class="fas fa-align-left"></i></span>
                             </div>
                         </div>
@@ -162,7 +164,7 @@
                                 <div class="field">
                                     <label class="label">Precio (€/kg)</label>
                                     <div class="control has-icons-left">
-                                        <input class="input" type="number" step="0.01" placeholder="0.00" name="precio" id="precio">
+                                        <input class="input" type="number" step="0.01" id="precio">
                                         <span class="icon is-small is-left"><i class="fas fa-euro-sign"></i></span>
                                     </div>
                                 </div>
@@ -171,7 +173,7 @@
                                 <div class="field">
                                     <label class="label">Origen</label>
                                     <div class="control has-icons-left">
-                                        <input class="input" type="text" placeholder="Ej: Vigo" name="origen" id="origen">
+                                        <input class="input" type="text" id="origen" maxlength="100">
                                         <span class="icon is-small is-left"><i class="fas fa-globe-europe"></i></span>
                                     </div>
                                 </div>
@@ -179,23 +181,19 @@
                         </div>
 
                         <div class="field mt-4">
-                            <label class="label">Fotografía del Producto</label>
-                            
+                            <label class="label">Fotografía</label>
                             <div class="file has-name is-fullwidth is-info">
                                 <label class="file-label">
-                                    <input class="file-input" type="file" id="fichero" accept="image/*" onchange="previsualizar()">
+                                    <input class="file-input" type="file" id="fichero" accept=".png,.jpg,.jpeg" onchange="previsualizar()">
                                     <span class="file-cta">
                                         <span class="file-icon"><i class="fas fa-upload"></i></span>
                                         <span class="file-label">Elegir foto...</span>
                                     </span>
-                                    <span class="file-name" id="filename-display">
-                                        Ningún archivo seleccionado
-                                    </span>
+                                    <span class="file-name" id="filename-display">Ningún archivo seleccionado</span>
                                 </label>
                             </div>
-
                             <figure class="image is-128x128 mt-3" style="margin: 0 auto;">
-                                <img id="img_preview" src="https://via.placeholder.com/128?text=Foto" class="is-rounded" style="object-fit: cover; border: 3px solid #eee; height: 128px; width: 128px;">
+                                <img id="img_preview" src="https://via.placeholder.com/128?text=Foto" class="is-rounded" style="object-fit: cover; height: 128px; width: 128px;">
                             </figure>
                         </div>
 
@@ -203,51 +201,14 @@
                             <div class="control">
                                 <button type="button" onclick="guardar()" class="button is-success is-medium">
                                     <span class="icon"><i class="fas fa-save"></i></span>
-                                    <span>Guardar Pescado</span>
+                                    <span>Guardar</span>
                                 </button>
                             </div>
-                            <div class="control">
-                                <a href="pescados.html" class="button is-light is-medium">
-                                    Cancelar
-                                </a>
-                            </div>
                         </div>
-
                     </div> 
                 </div>
             </div>
         </div>
     </section>
-
-    <footer class="footer">
-        <div class="content has-text-centered">
-            <p>
-                <strong>MiPrimeraPescadería</strong>. Calidad y frescura garantizada.
-            </p>
-            <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">
-                &copy; 2026 MiPrimeraPescadería. Todos los derechos reservados.
-            </p>
-            <div class="mt-2">
-                <span class="icon is-small mx-2"><i class="fab fa-facebook"></i></span>
-                <span class="icon is-small mx-2"><i class="fab fa-instagram"></i></span>
-            </div>
-        </div>
-    </footer>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-            if ($navbarBurgers.length > 0) {
-                $navbarBurgers.forEach( el => {
-                    el.addEventListener('click', () => {
-                        const target = el.dataset.target;
-                        const $target = document.getElementById(target);
-                        el.classList.toggle('is-active');
-                        $target.classList.toggle('is-active');
-                    });
-                });
-            }
-        });
-    </script>
 </body>
 </html>
