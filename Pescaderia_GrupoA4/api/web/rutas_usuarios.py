@@ -1,44 +1,65 @@
-from flask import request, Blueprint, jsonify
-# Simplificamos el import ya que controlador_usuarios.py está en la misma carpeta
+from flask import request, Blueprint, jsonify, make_response
+import json
 import controlador_usuarios
+from funciones_auxiliares import Encoder
 
 bp = Blueprint('usuarios', __name__)
 
 @bp.route("/login", methods=['POST'])
 def login():
-    """Endpoint para la autenticación de usuarios."""
-    if request.is_json:
-        login_json = request.get_json()
+    content_type = request.headers.get('Content-Type')
+    if content_type == 'application/json':
+        # Uso de los datos pre-sanitizados por app.py
+        login_json = getattr(request, 'cleaned_json', {})
         
-        username = login_json.get('username')
-        password = login_json.get('password')
+        username = login_json.get("username")
+        password = login_json.get("password")
         
-        # El controlador ya está securizado contra Inyección SQL
-        respuesta, code = controlador_usuarios.login_usuario(username, password)
+        if username and password:
+            # VALIDACIÓN ESTRICTA: Tipos y longitud máxima
+            if isinstance(username, str) and isinstance(password, str) and len(username) < 50 and len(password) < 50:
+                respuesta, code = controlador_usuarios.login_usuario(username, password)
+            else:
+                respuesta = {"status": "Bad parameters"}
+                code = 400
+        else:
+            respuesta = {"status": "Bad request"}
+            code = 400
     else:
-        respuesta = {"status": "Bad request", "mensaje": "Se requiere JSON"}
-        code = 400 # Cambiado a 400 (Bad Request) que es más preciso que 401 aquí
+        respuesta = {"status": "Bad request"}
+        code = 400
         
-    return jsonify(respuesta), code
+    response = make_response(json.dumps(respuesta, cls=Encoder), code)
+    response.headers['Content-Type'] = 'application/json'
+    return response
 
 @bp.route("/registro", methods=['POST'])
 def registro():
-    """Endpoint para dar de alta nuevos usuarios."""
-    if request.is_json:
-        login_json = request.get_json()
+    content_type = request.headers.get('Content-Type')
+    if content_type == 'application/json':
+        login_json = getattr(request, 'cleaned_json', {})
         username = login_json.get('username')
         password = login_json.get('password')
         profile = login_json.get('profile', 'normal')
         
-        respuesta, code = controlador_usuarios.alta_usuario(username, password, profile)
+        # VALIDACIÓN ESTRICTA
+        if (username and password and profile and 
+            isinstance(username, str) and isinstance(password, str) and isinstance(profile, str) and 
+            len(username) < 50 and len(password) < 50 and profile in ['normal', 'admin']):
+            
+            respuesta, code = controlador_usuarios.alta_usuario(username, password, profile)
+        else:
+            respuesta = {"status": "Bad parameters"}
+            code = 400
     else:
-        respuesta = {"status": "Bad request", "mensaje": "Se requiere JSON"}
+        respuesta = {"status": "Bad request"}
         code = 400
         
-    return jsonify(respuesta), code
+    response = make_response(json.dumps(respuesta, cls=Encoder), code)
+    response.headers['Content-Type'] = 'application/json'
+    return response
 
 @bp.route("/logout", methods=['GET'])
 def logout():
-    """Endpoint para el cierre de sesión."""
     respuesta, code = controlador_usuarios.logout()
     return jsonify(respuesta), code
