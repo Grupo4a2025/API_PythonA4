@@ -1,40 +1,35 @@
 from bd import obtener_conexion
+from funciones_auxiliares import sanitize_field
 import sys
 
 def convertir_pescado_a_json(pescado):
-    """Convierte la tupla de MariaDB en un diccionario para la API."""
     return {
         'id': pescado[0],
-        'nombre': pescado[1],
-        'descripcion': pescado[2],
+        'nombre': sanitize_field(pescado[1]),
+        'descripcion': sanitize_field(pescado[2]),
         'precio': float(pescado[3]),
-        'foto': pescado[4],
-        'origen': pescado[5]
+        'foto': sanitize_field(pescado[4]),
+        'origen': sanitize_field(pescado[5])
     }
 
 def insertar_pescado(nombre, descripcion, precio, foto, origen):
-    """Inserta un nuevo registro de forma segura."""
     conexion = None
     try:
         conexion = obtener_conexion()
         with conexion.cursor() as cursor:
-            # ✅ YA ERA CORRECTO: Consulta parametrizada
             query = "INSERT INTO pescados(nombre, descripcion, precio, foto, origen) VALUES (%s, %s, %s, %s, %s)"
             cursor.execute(query, (nombre, descripcion, precio, foto, origen))
             conexion.commit()
-        ret = {"status": "OK"}
-        code = 200
+        ret, code = {"status": "OK"}, 200
     except Exception as e:
         print(f"Error al insertar pescado: {e}", flush=True)
-        ret = {"status": "Failure"}
-        code = 500
+        ret, code = {"status": "Failure"}, 500
     finally:
         if conexion:
-            conexion.close() # Cierre garantizado de la conexión
+            conexion.close()
     return ret, code
 
 def obtener_pescados():
-    """Recupera la lista completa de productos."""
     pescadosjson = []
     conexion = None
     try:
@@ -54,13 +49,11 @@ def obtener_pescados():
     return pescadosjson, code
 
 def obtener_pescado_por_id(id):
-    """Busca un pescado específico por su ID primario."""
     pescadojson = {}
     conexion = None
     try:
         conexion = obtener_conexion()
         with conexion.cursor() as cursor:
-            # ✅ CORRECTO: El ID se pasa como tupla (id,) para evitar inyecciones
             query = "SELECT id, nombre, descripcion, precio, foto, origen FROM pescados WHERE id = %s"
             cursor.execute(query, (id,))
             pescado = cursor.fetchone()
@@ -76,7 +69,6 @@ def obtener_pescado_por_id(id):
     return pescadojson, code
 
 def eliminar_pescado(id):
-    """Elimina un registro verificando que se haya afectado una fila."""
     conexion = None
     try:
         conexion = obtener_conexion()
@@ -87,30 +79,25 @@ def eliminar_pescado(id):
         code = 200
     except Exception as e:
         print(f"Error al eliminar pescado: {e}", flush=True)
-        ret = {"status": "Failure"}
-        code = 500
+        ret, code = {"status": "Failure"}, 500
     finally:
         if conexion:
             conexion.close()
     return ret, code
 
 def actualizar_pescado(id, nombre, descripcion, precio, foto, origen):
-    """Actualiza los datos de un pescado existente."""
     conexion = None
     try:
         conexion = obtener_conexion()
         with conexion.cursor() as cursor:
-            query = """UPDATE pescados 
-                       SET nombre = %s, descripcion = %s, precio = %s, foto = %s, origen = %s 
-                       WHERE id = %s"""
+            query = "UPDATE pescados SET nombre = %s, descripcion = %s, precio = %s, foto = %s, origen = %s WHERE id = %s"
             cursor.execute(query, (nombre, descripcion, precio, foto, origen, id))
             ret = {"status": "OK"} if cursor.rowcount == 1 else {"status": "Failure"}
         conexion.commit()
         code = 200
     except Exception as e:
         print(f"Error al actualizar pescado: {e}", flush=True)
-        ret = {"status": "Failure"}
-        code = 500
+        ret, code = {"status": "Failure"}, 500
     finally:
         if conexion:
             conexion.close()
