@@ -8,10 +8,10 @@
     <title>PESCADERÍA - Registro</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
-    <link rel="stylesheet" href="estilos.css"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="estilos.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     
     <style>
-        /* Centrado vertical idéntico al Login */
         .login-section {
             display: flex;
             align-items: center;
@@ -20,66 +20,71 @@
             padding-top: 3rem;
             padding-bottom: 3rem;
         }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
     </style>
 
     <script>
-        var myHeaders = new Headers();
-        myHeaders.append("Content-Type", "application/json");
+        // --- LÓGICA DE REGISTRO SEGURO ---
+        async function registrarUsuario() {
+            const errorMsg = document.getElementById("mensajeError");
+            const userField = document.getElementById("username");
+            const passField = document.getElementById("password");
+            const profileField = document.getElementById("profile");
 
-        function conectar(){
-            // Ocultar mensaje de error previo
-            let errorMsg = document.getElementById("mensajeError");
             errorMsg.style.display = "none";
-            
-            let username = document.getElementById("username").value;
-            let password = document.getElementById("password").value;
+            errorMsg.classList.remove("animate-shake");
 
-            // Validación básica
-            if(username.trim() === "" || password.trim() === ""){
-                alert("Por favor, rellena usuario y contraseña.");
+            const username = userField.value.trim();
+            const password = passField.value.trim();
+            const profile = profileField.value;
+
+            // VALIDACIÓN ESTRICTA EN CLIENTE
+            if (!username || !password || username.length > 50 || password.length > 50) {
+                alert("⚠️ El usuario y la contraseña deben tener entre 1 y 50 caracteres.");
                 return;
             }
-            
-            var raw = JSON.stringify({
-                "username": username,
-                "password": password,
-                "profile": document.getElementById("profile").value
-            });
 
-            var requestOptions = {
-                method: 'POST',
-                headers: myHeaders,
-                body: raw
-            };
+            try {
+                const response = await fetch("/api/usuarios/registro", {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        "username": username,
+                        "password": password,
+                        "profile": profile
+                    })
+                });
 
-            fetch("/api/usuarios/registro", requestOptions)
-                .then(response => response.json())
-                .then(result => {
-                    if (result.status=="OK"){
-                        alert("✅ Usuario registrado correctamente. Por favor inicia sesión.");
-                        location.href="index.html";
-                    } else {
-                        // Mostrar notificación de error
-                        errorMsg.style.display="block";
-                    }
-                })
-                .catch(error => {
-                    console.log('error', error);
-                    alert("⚠️ Error de conexión al intentar registrarse.");
-                }); 
+                const result = await response.json();
+
+                if (result.status === "OK") {
+                    alert("✅ Usuario registrado correctamente. Ya puedes iniciar sesión.");
+                    location.href = "index.html";
+                } else {
+                    // Manejo de errores (usuario duplicado o fallo de validación)
+                    errorMsg.style.display = "block";
+                    errorMsg.classList.add("animate-shake");
+                }
+            } catch (error) {
+                console.error('Error de red:', error);
+                alert("⚠️ Error de conexión con el servicio de registro.");
+            }
         }
 
-        // Permitir registro con Enter
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                conectar();
-            }
+        // Permitir registro con la tecla ENTER
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') registrarUsuario();
         });
     </script>
 </head>
 <body>
 
-    <nav class="navbar is-info" role="navigation" aria-label="main navigation">
+    <nav class="navbar is-info">
         <div class="navbar-brand">
             <a class="navbar-item" href="index.html">
                 <span class="icon is-medium mr-2"><i class="fas fa-fish"></i></span>
@@ -99,59 +104,53 @@
                                 <i class="fas fa-user-plus fa-3x"></i>
                             </span>
                             <h3 class="title is-4">Crear Cuenta</h3>
-                            <p class="subtitle is-6 has-text-grey">Únete a nuestra Pescadería</p>
+                            <p class="subtitle is-6 has-text-grey">Únete a nuestra plataforma de gestión</p>
                         </div>
 
-                        <form>
+                        <form onsubmit="return false;">
                             <div class="field">
                                 <label class="label">Nombre de Usuario</label>
                                 <div class="control has-icons-left">
-                                    <input class="input" type="text" placeholder="Elige un usuario" name="username" id="username" required autofocus>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-user"></i>
-                                    </span>
+                                    <input class="input" type="text" placeholder="Elige tu nombre de usuario" id="username" maxlength="50" required autofocus>
+                                    <span class="icon is-small is-left"><i class="fas fa-user"></i></span>
                                 </div>
                             </div>
 
                             <div class="field">
                                 <label class="label">Contraseña</label>
                                 <div class="control has-icons-left">
-                                    <input class="input" type="password" placeholder="Define tu clave" name="password" id="password" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-lock"></i>
-                                    </span>
+                                    <input class="input" type="password" placeholder="Mínimo 8 caracteres recomendados" id="password" maxlength="50" required>
+                                    <span class="icon is-small is-left"><i class="fas fa-lock"></i></span>
                                 </div>
                             </div>
 
                             <div class="field">
                                 <label class="label">Tipo de Perfil</label>
                                 <div class="control has-icons-left">
-                                    <input class="input has-background-light has-text-grey" type="text" name="profile" id="profile" value="normal" readonly style="cursor: not-allowed;">
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-id-badge"></i>
-                                    </span>
+                                    <input class="input has-background-light has-text-grey" type="text" id="profile" value="normal" readonly style="cursor: not-allowed;">
+                                    <span class="icon is-small is-left"><i class="fas fa-id-badge"></i></span>
                                 </div>
-                                <p class="help">El perfil por defecto es "cliente".</p>
+                                <p class="help">Por seguridad, el perfil inicial es siempre 'normal'.</p>
                             </div>
 
-                            <div id="mensajeError" class="notification is-danger is-light mb-3 is-size-7" style="display: none; border-radius: 8px;">
+                            <div id="mensajeError" class="notification is-danger is-light mb-3 is-size-7" style="display: none;">
                                 <span class="icon"><i class="fas fa-times-circle"></i></span>
-                                <strong>Error:</strong> El usuario ya existe o hubo un problema técnico.
+                                <strong>Error:</strong> No se pudo completar el registro. Es posible que el usuario ya exista.
                             </div>
 
                             <div class="field mt-5">
-                                <button type="button" onclick="conectar()" class="button is-success is-fullwidth is-medium">
-                                    <strong>Registrarse</strong>
+                                <button type="button" onclick="registrarUsuario()" class="button is-success is-fullwidth is-medium">
+                                    <strong>Registrarse Ahora</strong>
                                 </button>
                             </div>
 
                             <hr class="my-4">
 
                             <div class="field has-text-centered">
-                                <p class="is-size-7 mb-2">¿Ya tienes cuenta?</p>
+                                <p class="is-size-7 mb-2">¿Ya eres parte del equipo?</p>
                                 <a href="index.html" class="button is-small is-text has-text-info">
                                     <span class="icon"><i class="fas fa-arrow-left"></i></span>
-                                    <span>Volver al Login</span>
+                                    <span>Volver al Acceso</span>
                                 </a>
                             </div>
                         </form>
@@ -164,16 +163,7 @@
 
     <footer class="footer">
         <div class="content has-text-centered">
-            <p>
-                <strong>MiPrimeraPescadería</strong>. Calidad y frescura garantizada.
-            </p>
-            <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">
-                &copy; 2026 MiPrimeraPescadería. Todos los derechos reservados.
-            </p>
-            <div class="mt-2">
-                <span class="icon is-small mx-2"><i class="fab fa-facebook"></i></span>
-                <span class="icon is-small mx-2"><i class="fab fa-instagram"></i></span>
-            </div>
+            <p><strong>MiPrimeraPescadería</strong> &copy; 2026 - Madrid IT Solutions</p>
         </div>
     </footer>
 </body>
