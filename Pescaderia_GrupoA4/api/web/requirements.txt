@@ -4,3 +4,4 @@ markupsafe==2.0.1
 python-dotenv
 Flask-CORS
 Werkzeug==1.0.1
+bleach
