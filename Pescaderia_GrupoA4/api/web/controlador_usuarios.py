@@ -2,9 +2,12 @@ from bd import obtener_conexion
 import sys
 
 def login_usuario(username, password):
+    """Valida las credenciales de un usuario de forma segura."""
+    conexion = None
     try:
         conexion = obtener_conexion()
         with conexion.cursor() as cursor:
+            # ✅ CORRECTO: Consulta parametrizada para evitar bypass de login
             sql = "SELECT perfil FROM usuarios WHERE usuario = %s AND clave = %s"
             cursor.execute(sql, (username, password))
             usuario_encontrado = cursor.fetchone()
@@ -15,21 +18,24 @@ def login_usuario(username, password):
                 ret = {"status": "OK", "perfil": usuario_encontrado[0]}
         
         code = 200
-        conexion.close()
     except Exception as e:
-        print("Excepcion al validar al usuario: " + str(e), flush=True)   
+        print(f"Excepción al validar al usuario: {e}", flush=True)   
         ret = {"status": "ERROR"}
         code = 500
+    finally:
+        if conexion:
+            conexion.close() # Cierre garantizado de la conexión
     return ret, code
 
 def alta_usuario(username, password, perfil):
+    """Registra un nuevo usuario verificando duplicados."""
+    conexion = None
     try:
         conexion = obtener_conexion()
         with conexion.cursor() as cursor:
+            # Comprobación de existencia previa
             cursor.execute("SELECT perfil FROM usuarios WHERE usuario = %s", (username,))
-            usuario_existente = cursor.fetchone()
-            
-            if usuario_existente is None:
+            if cursor.fetchone() is None:
                 sql_insert = "INSERT INTO usuarios(usuario, clave, perfil) VALUES (%s, %s, %s)"
                 cursor.execute(sql_insert, (username, password, perfil))
                 
@@ -43,12 +49,15 @@ def alta_usuario(username, password, perfil):
             else:
                 ret = {"status": "ERROR", "mensaje": "El usuario ya existe"}
                 code = 200 
-        conexion.close()
     except Exception as e:
-        print("Excepcion al registrar al usuario: " + str(e), flush=True)   
+        print(f"Excepción al registrar al usuario: {e}", flush=True)   
         ret = {"status": "ERROR"}
         code = 500
-    return ret, code    
+    finally:
+        if conexion:
+            conexion.close()
+    return ret, code     
 
 def logout():
+    """Finaliza la sesión del usuario."""
     return {"status": "OK"}, 200
