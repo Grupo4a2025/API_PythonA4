@@ -1,60 +1,57 @@
-from __future__ import print_function
 import os
 import sys
-import subprocess
-import stat
+from werkzeug.utils import secure_filename
 
-# Ruta interna donde Python guardará las cosas
-RUTA_MONTAJE = "/app/static/archivos"
+# 1. Configuración por entorno: recuperamos la ruta o usamos la de la estructura del proyecto
+# En Docker suele ser /app/api/web/static/archivos
+RUTA_MONTAJE = os.getenv('STORAGE_PATH', '/app/static/archivos')
 
 def guardar_fichero(nombre, contenido):
+    """Guarda un fichero de forma segura aplicando sanitización de nombres."""
     try:
-        print("--- INICIO GUARDADO ---", flush=True)
+        print("--- INICIO GUARDADO SEGURO ---", flush=True)
         
-        # 1. Crear carpeta si no existe
+        # 2. Crear carpeta si no existe con permisos restrictivos (755 en lugar de 777)
         if not os.path.exists(RUTA_MONTAJE):
-            os.makedirs(RUTA_MONTAJE, exist_ok=True)
-            # Permisos 777 a la carpeta
-            try:
-                os.chmod(RUTA_MONTAJE, 0o777)
-            except:
-                pass
+            os.makedirs(RUTA_MONTAJE, mode=0o755, exist_ok=True)
 
-        # 2. Ruta final
-        ruta_final = os.path.join(RUTA_MONTAJE, nombre) 
-        print(f"Guardando en: {ruta_final}", flush=True)
+        # 3. Sanitización: Evita Path Traversal (ej. nombre="../etc/passwd")
+        nombre_seguro = secure_filename(nombre)
+        ruta_final = os.path.join(RUTA_MONTAJE, nombre_seguro) 
         
-        # 3. Guardar
+        print(f"Guardando de forma segura en: {ruta_final}", flush=True)
+        
+        # 4. Guardar el archivo
         contenido.save(ruta_final)
         
+        # 5. Ajustar permisos a 644 (lectura para todos, escritura solo para el dueño)
         try:
-            os.chmod(ruta_final, 0o666)
-            print("Permisos actualizados.", flush=True)
+            os.chmod(ruta_final, 0o644)
+            print("Permisos ajustados a 644.", flush=True)
         except Exception as e:
-            print(f"Error permisos: {e}", flush=True)
+            print(f"Error ajustando permisos: {e}", flush=True)
 
-        # 5. Confirmación
-        if os.path.exists(ruta_final):
-            respuesta = {"status": "OK"}
-            code = 200
-        else:
-            respuesta = {"status": "ERROR"}
-            code = 500
+        return {"status": "OK", "filename": nombre_seguro}, 200
             
     except Exception as e:
-        print(f"EXCEPCION: {str(e)}", flush=True)  
-        respuesta = {"status": "ERROR"}
-        code = 500
-    return respuesta, code
+        print(f"EXCEPCIÓN EN GUARDADO: {str(e)}", flush=True)  
+        return {"status": "ERROR", "msg": str(e)}, 500
 
 def ver_fichero(nombre):
-    # Esta función se mantiene para compatibilidad, aunque visualizamos por Apache
+    """Lee un fichero de forma segura sin usar comandos de sistema."""
     try:
-        ruta_fichero = os.path.join(RUTA_MONTAJE, nombre)
-        salida = subprocess.getoutput("cat " + ruta_fichero)
-        respuesta = {"contenido": salida, "status": "OK"}
-        code = 200
-    except:
-        respuesta = {"contenido": "", "status": "ERROR"}
-        code = 500
-    return respuesta, code
+        # Sanitizar el nombre para evitar que lean archivos fuera de la carpeta permitida
+        nombre_seguro = secure_filename(nombre)
+        ruta_fichero = os.path.join(RUTA_MONTAJE, nombre_seguro)
+        
+        # 6. EVITAR COMMAND INJECTION: Usamos open() nativo en lugar de subprocess/cat
+        if os.path.exists(ruta_fichero):
+            with open(ruta_fichero, 'r', errors='ignore') as f:
+                salida = f.read()
+            return {"contenido": salida, "status": "OK"}, 200
+        else:
+            return {"contenido": "", "status": "FILE_NOT_FOUND"}, 404
+            
+    except Exception as e:
+        print(f"Error al leer fichero: {e}", flush=True)
+        return {"contenido": "", "status": "ERROR"}, 500
