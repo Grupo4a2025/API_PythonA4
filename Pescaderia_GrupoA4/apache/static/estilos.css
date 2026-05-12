@@ -1,12 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 
 :root {
-    --primary-dark: #0f172a;   
-    --primary-blue: #0ea5e9;   
-    --accent-gold: #f59e0b;    
-    --bg-light: #f8fafc;        
+    --primary-dark: #0f172a;   /* Azul Oxford */
+    --primary-blue: #0ea5e9;   /* Azul Cielo */
+    --accent-gold: #f59e0b;    /* Oro/Ámbar */
+    --bg-light: #f8fafc;       /* Gris Pizarra muy claro */
     --surface-white: #ffffff;   
-    --text-main: #334155;       
+    --text-main: #334155;      
+    --error-red: #ef4444;      /* Rojo para alertas de seguridad */
+    --success-green: #22c55e;  /* Verde para validaciones correctas */
 }
 
 /* --- ESTILOS GENERALES --- */
@@ -17,6 +19,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    margin: 0;
 }
 
 section.section {
@@ -32,6 +35,11 @@ section.section {
 .navbar-item, .navbar-link {
     font-weight: 500;
     letter-spacing: 0.5px;
+    color: white !important;
+}
+
+.navbar-item:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 .navbar-item.is-active {
@@ -42,78 +50,70 @@ section.section {
 /* --- CAJAS Y TARJETAS --- */
 .box, .card {
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     background-color: var(--surface-white);
 }
 
 .box:hover {
-    transform: translateY(-5px);
+    transform: translateY(-3px);
     box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.1);
 }
 
 /* --- FORMULARIOS --- */
-.input, .textarea, .select select {
+.input, .textarea {
     border-radius: 8px;
     border: 1px solid #cbd5e1;
-    box-shadow: none;
-    transition: all 0.3s;
-    padding-top: 22px; 
-    padding-bottom: 22px;
+    transition: all 0.2s ease-in-out;
 }
 
-.input:focus, .textarea:focus, .select select:focus {
+.input:focus, .textarea:focus {
     border-color: var(--primary-blue);
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
 }
 
-/* --- BOTONES  --- */
+/* --- BOTONES --- */
 .button {
     border-radius: 8px;
     font-weight: 600;
     transition: all 0.2s;
-    border: none;
 }
 
+/* Sobrescribimos el success de Bulma con tu azul corporativo */
 .button.is-success {
-    background-color: var(--primary-blue); 
-    box-shadow: 0 4px 14px 0 rgba(14, 165, 233, 0.39);
+    background-color: var(--primary-blue) !important; 
+    border: none;
+    color: white;
 }
 
 .button.is-success:hover {
-    background-color: #0284c7;
-    transform: translateY(-1px);
+    background-color: #0284c7 !important;
+    filter: brightness(1.1);
 }
 
-.button.is-info {
-    background-color: var(--primary-dark);
+.button.is-danger {
+    background-color: var(--error-red) !important;
 }
 
-/* Botón de "Ver" o acciones secundarias */
-.button.is-primary {
-    background-color: var(--accent-gold);
-    color: white;
-}
-.button.is-primary:hover {
-    background-color: #d97706;
+/* --- ELEMENTOS DE SEGURIDAD UI --- */
+.status-msg-error {
+    color: var(--error-red);
+    font-size: 0.85rem;
+    font-weight: 500;
 }
 
-/* --- TÍTULOS --- */
-.title {
-    color: var(--primary-dark);
-    font-weight: 700;
-    letter-spacing: -0.5px;
-}
-.subtitle {
-    color: #64748b;
+.status-msg-success {
+    color: var(--success-green);
+    font-size: 0.85rem;
+    font-weight: 500;
 }
 
-/* --- FOOTER  --- */
+/* --- FOOTER --- */
 .footer {
     background-color: var(--primary-dark);
     color: white;
-    padding: 3rem 1.5rem;
+    padding: 2rem 1.5rem;
     margin-top: auto; 
 }
 
@@ -123,15 +123,4 @@ section.section {
 
 .footer strong {
     color: var(--surface-white);
-}
-
-/* --- MEJORAS VISUALES EN TABLAS Y LISTAS --- */
-.table {
-    border-radius: 12px;
-    overflow: hidden;
-}
-.table thead th {
-    background-color: var(--bg-light);
-    color: var(--primary-dark);
-    border: none;
 }
