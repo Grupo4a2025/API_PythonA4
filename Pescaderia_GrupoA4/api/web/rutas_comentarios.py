@@ -1,31 +1,34 @@
-from flask import request, Blueprint, jsonify
+from flask import request, Blueprint, jsonify, make_response
+import json
 import controlador_comentarios
+from funciones_auxiliares import Encoder
 
 bp = Blueprint('comentarios', __name__)
 
 @bp.route("/", methods=['POST'])
 def crear_comentario():
-    """Recibe un nuevo comentario en formato JSON y lo almacena."""
-    if request.is_json:
-        comentario_json = request.get_json()
-        
-        # Extracción segura con .get() para evitar errores si faltan campos
+    if request.headers.get('Content-Type') == 'application/json':
+        comentario_json = getattr(request, 'cleaned_json', {})
         usuario = comentario_json.get('usuario')
         descripcion = comentario_json.get('descripcion')
         
-        if not usuario or not descripcion:
-            return jsonify({"status": "ERROR", "mensaje": "Faltan campos obligatorios"}), 400
-
-        # El controlador ya gestiona la conexión de forma segura
-        respuesta, code = controlador_comentarios.insertar_comentario(usuario, descripcion)
+        if usuario and descripcion:
+            if isinstance(usuario, str) and isinstance(descripcion, str) and len(usuario) < 50 and len(descripcion) < 500:
+                respuesta, code = controlador_comentarios.insertar_comentario(usuario, descripcion)
+            else:
+                respuesta, code = {"status": "Bad parameters"}, 400
+        else:
+            respuesta, code = {"status": "Bad request", "mensaje": "Faltan campos obligatorios"}, 400
     else:
-        respuesta = {"status": "Bad request", "mensaje": "Se requiere Content-Type: application/json"}
-        code = 400 # Error de petición mal formada
+        respuesta, code = {"status": "Bad request"}, 400
         
-    return jsonify(respuesta), code
+    response = make_response(json.dumps(respuesta, cls=Encoder), code)
+    response.headers['Content-Type'] = 'application/json'
+    return response
 
 @bp.route("/", methods=['GET'])
 def consulta_comentarios():
-    """Devuelve el listado de todos los comentarios registrados."""
     respuesta, code = controlador_comentarios.obtener_comentarios()
-    return jsonify(respuesta), code
+    response = make_response(json.dumps(respuesta, cls=Encoder), code)
+    response.headers['Content-Type'] = 'application/json'
+    return response
